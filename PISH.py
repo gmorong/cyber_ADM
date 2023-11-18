@@ -106,8 +106,6 @@ async def cmd_OsProfOr(message: types.Message):
     await message.answer("Давайте начнём профориентцию! ;)\nНа какую программу вы хотите пойти (Основную или Дополнительную)? ", reply_markup=keyboard)
 
 
-
-
 #ОсПрограмма
 @dp.callback_query_handler(text="OsPr")
 async def send_Os(call: types.CallbackQuery):
@@ -183,7 +181,7 @@ async def send_Os(call: types.CallbackQuery):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text="Энергетика и физика", callback_data="EnPhi"))
     keyboard.add(types.InlineKeyboardButton(text="Технологии и машиностроение", callback_data="TechMash"))
-    await call.message.answer("Давайте начнём профориентцию! ;)\nЧто вам больше нравится?\n\n• Энергетика и физика\n•Технологии и машиностроение ", reply_markup=keyboard)
+    await call.message.answer("Давайте начнём профориентцию! ;)\nЧто вам больше нравится?\n\n• Энергетика и физика\n• Технологии и машиностроение ", reply_markup=keyboard)
 
 
 @dp.callback_query_handler(text="EnPhi")
@@ -224,6 +222,9 @@ async def send_Os(call: types.CallbackQuery):
 @dp.callback_query_handler(text="Elandel")
 async def send_Os(call: types.CallbackQuery):
     await call.message.delete()
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton(text="Перейти на сайт", url='https://www.nntu.ru/structure/view/podrazdeleniya/pish/proekt-programma-partnery'))
+    keyboard.add(types.InlineKeyboardButton(text="Подать заявку", url='https://ips.nntu.ru/content/zayavka/zayavka'))
     await call.message.answer("Вам подойдёт данное направление:\n\n• Электроэнергетика и электротехника\n\n• Вы можете найти информацию о направлении у нас на сайте или отправть заявку на обучние!", reply_markup=keyboard)
 
 
@@ -241,7 +242,7 @@ async def send_Os(call: types.CallbackQuery):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text="Разработка программ/приложений", callback_data="RazPrPril"))
     keyboard.add(types.InlineKeyboardButton(text="Создание эффективных алгоритмов", callback_data="SozEfAl"))
-    await call.message.answer("Что вас привлекаетбольше?", reply_markup=keyboard)
+    await call.message.answer("Что вас привлекает больше?", reply_markup=keyboard)
 
 #Otv
 @dp.callback_query_handler(text="RazPrPril")
