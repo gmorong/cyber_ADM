@@ -5,88 +5,109 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import Message
 from aiogram import*
 import logging
-from random import*
+import sqlite3
 
-
-#id администратора
-#1316382049 - я
-
+#id администратора (получить можно тут @getmyid_bot)
+ADMIN =1316382049
+##1316382049
+#627268282
 
 #Некоторые переменные
 kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
-kb.add(types.InlineKeyboardButton(text="/ОбновитьСписокНаправлений"))
+kb.add(types.InlineKeyboardButton(text="Рассылка"))
+kb.add(types.InlineKeyboardButton(text="/НовыеМежДисКоманды"))
 
 #Инициализация проекта
 logging.basicConfig(level=logging.INFO)
 storage = MemoryStorage()
-bot = Bot(token="6927325839:AAHTK2fDoWdJ0u6vBT0y-PeVg0MK76YIuKY")
+bot = Bot(token="6927325839:AAHTK2fDoWdJ0u6vBT0y-PeVg0MK76YIuKY") #Тут надо указать API бота, для этого переходим в @BotFather регистрируем нового бота и получаем API
 dp = Dispatcher(bot, storage=storage)
 
-
-
-
-
-
+#Создание базы данных
+conn = sqlite3.connect('db5.db')
+cur = conn.cursor()
+cur.execute("""CREATE TABLE IF NOT EXISTS users(user_id INTEGER, block INTEGER);""")
+conn.commit()
 
 #Объявление States
 class dialog(StatesGroup):
     spam = State()
-    blacklist = State()
-    whitelist = State()
 
 
-#расписание
 
-#class meinfo(StatesGroup):
-#    Q1 = State()
-#    Q2 = State()
-    
-#@dp.message_handler(commands = ["ОбновитьСписокНаправленийВПЧ"], state=None)      
-#async def enter_meinfo(message: types.Message):
-#    if message.chat.id == 000000:               
-#        await message.answer("Введи новый список :3")        
-
-#        await meinfo.Q1.set()                                  
-
-#@dp.message_handler(state=meinfo.Q1)                             
-#async def answer_q1(message: types.Message, state: FSMContext):
-#    answer = message.text
-#    await state.update_data(answer1=answer)                     
-
-
-#    await message.answer("Список сохранён :3")
-
-    
-#    data = await state.get_data()               
-#    answer1 = data.get("answer1")
-
-    
-#    if message.chat.id == 1316382049:
-#        joinedFile = open("napravlenia.txt","w", encoding="utf-8")       
-#        joinedFile.write(str(answer1))
-#        await message.answer(f'{answer1}')
-
- 
-#    await state.finish()
-
+class meinfo(StatesGroup):
+    Q1 = State()
+    Q2 = State()
+    Q3 = State()
     
 #Команда /start
+
 @dp.message_handler(commands=['start'])
 async def start(message: Message):
-    await message.answer("Привет!")
-    #if message.chat.id == 1005942712 or message.chat.id == 1257342048 or message.chat.id == 1316382049 or message.chat.id == 552598026 or message.id == 627268282:
-    #    await message.answer('Добро пожаловать в Админ-Панель!', reply_markup=kb)
-
+  cur = conn.cursor()
+  cur.execute(f"SELECT block FROM users WHERE user_id = {message.chat.id}")
+  result = cur.fetchone()
+  if message.from_user.id == ADMIN:
+    await message.answer('Добро пожаловать в Админ-Панель!', reply_markup=kb)
+  else:
+      if result is None:
+        cur = conn.cursor()
+        cur.execute(f'''SELECT * FROM users WHERE (user_id="{message.from_user.id}")''')
+        entry = cur.fetchone()
+        if entry is None:
+          cur.execute(f'''INSERT INTO users VALUES ('{message.from_user.id}', '0')''')
+          conn.commit()
+          await message.answer('Привет, я ПИШ-bot!')
 
 #Команды
+@dp.message_handler(content_types=['text'], text='Рассылка')
+async def spam(message: Message):
+  await dialog.spam.set()
+  await message.answer('Напиши текст рассылки.\n\nПример:\nВниамние! Новое мероприятие!\nКраткое содержание мироприятия и информация о нём\nРегиятриция: ссылка на гугл форму\n\nДля отмены напиши "Назад"')
 
+@dp.message_handler(state=dialog.spam)
+async def start_spam(message: Message, state: FSMContext):
+  if message.text == 'Назад':
+    await message.answer('Главное меню', reply_markup=kb)
+    await state.finish()
+  else:
+    cur = conn.cursor()
+    cur.execute(f'''SELECT user_id FROM users''')
+    spam_base = cur.fetchall()
+    for z in range(len(spam_base)):
+          await bot.send_message(spam_base[z][0], message.text)
+          await state.finish()
+    await message.answer('Рассылка завершена', reply_markup=kb)
+
+@dp.message_handler(commands = ["НовыеМежДисКоманды"], state=None)      
+async def enter_meinfo(message: types.Message):
+    if message.chat.id == ADMIN:               
+        await message.answer("Введите список всех Команд и ссылки на их беседы :3\nПример:\n\nКоманда №1: разработка программ\nКрасткое описание: команда по разработке команд\nСсылка: https://t.me/+XNsZnp9SPw1kYTli\n\nКоманда №2: разработка программ\nКрасткое описание: команда по разработке команд\nСсылка: https://t.me/+LAy6QVitMntkNjJi")        
+
+        await meinfo.Q3.set()                                  
+
+@dp.message_handler(state=meinfo.Q3)                             
+async def answer_q122(message: types.Message, state: FSMContext):
+    answer = message.text
+    await state.update_data(answer3=answer)                     
+
+    await message.answer("Всё сохранено :3")
+
+    data = await state.get_data()               
+    answer3 = data.get("answer3")         
+    if message.chat.id ==ADMIN:
+        joinedFile = open("comands.txt","w", encoding="utf-8")       
+        joinedFile.write(str(answer3))
+        await message.answer(f'{answer3}')
+
+    await state.finish()
+
+########################
 
 @dp.message_handler(commands="vopros", commands_prefix="/")
 async def cmd_dezign(message: types.Message):
     await message.delete()
     await message.answer(text = "Вы можете задать вопросы:\n1. По тел.: +7 (831) 436 63 07\n2. По эл. почте: nntu@nntu.ru\n3. В группе ВК: https://vk.com/nntualekseeva\nИли поискать на сайте: www.nntu.ru")
-
-
 
 @dp.message_handler(commands="napravlenie", commands_prefix="/")
 async def cmd_OsDop(message: types.Message):
@@ -96,7 +117,6 @@ async def cmd_OsDop(message: types.Message):
     keyboard.add(types.InlineKeyboardButton(text="Доп.Программа", callback_data="DopPr"))
     await message.answer("Выберите программу обучения: ", reply_markup=keyboard)
 
-
 @dp.message_handler(commands="profori", commands_prefix="/")
 async def cmd_OsProfOr(message: types.Message):
     await message.delete()
@@ -105,8 +125,17 @@ async def cmd_OsProfOr(message: types.Message):
     keyboard.add(types.InlineKeyboardButton(text="Доп. Программа", callback_data="DopProf"))
     await message.answer("Давайте начнём профориентцию! ;)\nНа какую программу вы хотите пойти (Основную или Дополнительную)? ", reply_markup=keyboard)
 
+#######################
 
-#ОсПрограмма
+@dp.message_handler(commands="commands", commands_prefix="/")
+async def cmd_dezign(message: types.Message):
+    await message.delete()
+    link1 = open('comands.txt', encoding="utf-8") 
+    link = link1.read()
+    await message.answer(text = f"{link}")
+
+
+#ОсПрограммаОбуч
 @dp.callback_query_handler(text="OsPr")
 async def send_Os(call: types.CallbackQuery):
     await call.message.delete()
@@ -137,10 +166,7 @@ async def send_Os(call: types.CallbackQuery):
     await call.message.delete()
     await call.message.answer("• 13.04.02 Электроэнергетика и электротехника\nАвтономные электрогенерирующие комплексы на основе водорода\n\n• 13.04.03 Энергетическое машиностроение\nЭнергетические установки на водородном топливе\n\n• 15.04.04 Автоматизация технологических процессов и производств\nАвтоматизация технологических процессов и производств в задачах управления объектами атомной промышленности \n\n• 22.04.02 Металлургия\nАддитивные технологии и производства")
 
-
-
-
-#ДопПрограмма
+#ДопПрограммаОбуч
 @dp.callback_query_handler(text="DopPr")
 async def send_Os(call: types.CallbackQuery):
     await call.message.delete()
@@ -150,7 +176,6 @@ async def send_Os(call: types.CallbackQuery):
     keyboard.add(types.InlineKeyboardButton(text="2024", callback_data="2O24"))
     keyboard.add(types.InlineKeyboardButton(text="2025", callback_data="2O25"))
     await call.message.answer("Выберите год поступления: ", reply_markup=keyboard)
-
 
 @dp.callback_query_handler(text="2O22")
 async def send_Os(call: types.CallbackQuery):
@@ -172,9 +197,7 @@ async def send_Os(call: types.CallbackQuery):
     await call.message.delete()
     await call.message.answer("Нет информации")
 
-
 #Профориентация Основная программа
-
 @dp.callback_query_handler(text="OsnProf")
 async def send_Os(call: types.CallbackQuery):
     await call.message.delete()
@@ -182,7 +205,6 @@ async def send_Os(call: types.CallbackQuery):
     keyboard.add(types.InlineKeyboardButton(text="Энергетика и физика", callback_data="EnPhi"))
     keyboard.add(types.InlineKeyboardButton(text="Технологии и машиностроение", callback_data="TechMash"))
     await call.message.answer("Давайте начнём профориентцию! ;)\nЧто вам больше нравится?\n\n• Энергетика и физика\n• Технологии и машиностроение ", reply_markup=keyboard)
-
 
 @dp.callback_query_handler(text="EnPhi")
 async def send_Os(call: types.CallbackQuery):
@@ -227,7 +249,6 @@ async def send_Os(call: types.CallbackQuery):
     keyboard.add(types.InlineKeyboardButton(text="Подать заявку", url='https://ips.nntu.ru/content/zayavka/zayavka'))
     await call.message.answer("Вам подойдёт данное направление:\n\n• Электроэнергетика и электротехника\n\n• Вы можете найти информацию о направлении у нас на сайте или отправть заявку на обучние!", reply_markup=keyboard)
 
-
 @dp.callback_query_handler(text="TechMash")
 async def send_Os(call: types.CallbackQuery):
     await call.message.delete()
@@ -262,7 +283,6 @@ async def send_Os(call: types.CallbackQuery):
     keyboard.add(types.InlineKeyboardButton(text="Подать заявку", url='https://ips.nntu.ru/content/zayavka/zayavka'))
     await call.message.answer("Вам подойдёт данное направление:\n\n• Автоматизация технологических процессов и производств\n\n• Вы можете найти информацию о направлении у нас на сайте или отправть заявку на обучние!", reply_markup=keyboard)
 
-
 @dp.callback_query_handler(text="MechStroy")
 async def send_Os(call: types.CallbackQuery):
     await call.message.delete()
@@ -270,7 +290,6 @@ async def send_Os(call: types.CallbackQuery):
     keyboard.add(types.InlineKeyboardButton(text="Да", callback_data="Yean"))
     keyboard.add(types.InlineKeyboardButton(text="Нет", callback_data="Nope"))
     await call.message.answer("Продолжим!\nВам нравится изучать различные природные материалы?", reply_markup=keyboard)
-
 
 @dp.callback_query_handler(text="Yean")
 async def send_Os(call: types.CallbackQuery):
@@ -324,8 +343,6 @@ async def send_Os(call: types.CallbackQuery):
     keyboard.add(types.InlineKeyboardButton(text="Подать заявку", url='https://ips.nntu.ru/content/zayavka/zayavka'))
     await call.message.answer("Вам подойдёт данное направление:\n\n• Конструкторско-технологическое обеспечение машиностроительных производств\n\n• Вы можете найти информацию о направлении у нас на сайте или отправть заявку на обучние!", reply_markup=keyboard)
 
-
-
 #Профориентация Основная программа
 
 @dp.callback_query_handler(text="DopProf")
@@ -369,7 +386,6 @@ async def send_Os(call: types.CallbackQuery):
     keyboard.add(types.InlineKeyboardButton(text="Перейти на сайт", url='https://www.nntu.ru/structure/view/podrazdeleniya/pish/proekt-programma-partnery'))
     keyboard.add(types.InlineKeyboardButton(text="Подать заявку", url='https://ips.nntu.ru/content/zayavka/zayavka'))
     await call.message.answer("Вам подойдёт данное направление:\n\n• Цифровое моделирование электроэнергетических систем АЭС\n\n• Вы можете найти информацию о направлении у нас на сайте или отправть заявку на обучние!", reply_markup=keyboard)
-
 
 @dp.callback_query_handler(text="podder1")
 async def send_Os(call: types.CallbackQuery):
@@ -494,7 +510,6 @@ async def send_Os(call: types.CallbackQuery):
     keyboard.add(types.InlineKeyboardButton(text="Перейти на сайт", url='https://www.nntu.ru/structure/view/podrazdeleniya/pish/proekt-programma-partnery'))
     keyboard.add(types.InlineKeyboardButton(text="Подать заявку", url='https://ips.nntu.ru/content/zayavka/zayavka'))
     await call.message.answer("Вам подойдёт данное направление:\n\n• Энергетические установки, работающие на водородном топливе\n\n• Вы можете найти информацию о направлении у нас на сайте или отправть заявку на обучние!", reply_markup=keyboard)
-
 
 #Конец файла
 if __name__ == '__main__':
